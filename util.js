@@ -8,6 +8,7 @@ const {
   substTVar,
   isTFun,
 } = require('./types');
+const { KMeta } = require('./kinds');
 
 const terr = msg => { throw new TypeError(msg) };
 
@@ -17,6 +18,7 @@ const freshId = () => _id++;
 
 const freshTMeta = () => TMeta(freshId());
 const freshTSkol = name => TSkol(name, freshId());
+const freshKMeta = () => KMeta(freshId());
 
 const extend = (env, x, t) => {
   const n = Object.create(env);
@@ -81,6 +83,7 @@ module.exports = {
   freshId,
   freshTMeta,
   freshTSkol,
+  freshKMeta,
 
   extend,
   Check,
