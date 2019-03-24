@@ -28,7 +28,7 @@ const tid = TForall(['t'], tfun(tv('t'), tv('t')));
 const env = {
   id: tid,
 };
-const term = Ann(v('id'), tid);
+const term = Ann(app(abs(['x', 'y'], v('x')), abs(['x'], v('x'))), TForall(['r'], tfun(tv('r'), tid)));
 try {
   console.log(showTerm(term));
   time = Date.now();
@@ -39,4 +39,3 @@ try {
 } catch (err) {
   console.log(`${err}`);
 }
-

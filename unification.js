@@ -1,4 +1,5 @@
 const {
+  isTFun,
   TFun,
   showTy,
   occursTMeta,
@@ -20,7 +21,7 @@ const unify = (a, b) => {
   if (a === b) return;
   if (a.tag === 'TMeta') return bindVar(a, b);
   if (b.tag === 'TMeta') return bindVar(b, a);
-  if (a.tag === 'TFun' && b.tag === 'TFun') {
+  if (a.tag === 'TApp' && b.tag === 'TApp') {
     unify(a.left, b.left);
     return unify(a.right, b.right);
   }
@@ -30,7 +31,7 @@ const unify = (a, b) => {
 };
 
 const unifyTFun = ty => {
-  if (ty.tag === 'TFun') return ty;
+  if (isTFun(ty)) return ty;
   const fn = TFun(freshTMeta(), freshTMeta());
   unify(ty, fn);
   return fn;

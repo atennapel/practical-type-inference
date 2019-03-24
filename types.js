@@ -2,21 +2,28 @@ const TCon = name => ({ tag: 'TCon', name });
 const TVar = name => ({ tag: 'TVar', name });
 const TMeta = (id, type = null) => ({ tag: 'TMeta', id, type });
 const TSkol = (name, id) => ({ tag: 'TSkol', name, id });
-const TFun = (left, right) => ({ tag: 'TFun', left, right });
+const TApp = (left, right) => ({ tag: 'TApp', left, right });
 const TForall = (tvs, type) => ({ tag: 'TForall', tvs, type });
+
+const tFun = TCon('->');
+const TFun = (left, right) => TApp(TApp(tFun, left), right);
+const isTFun = ty =>
+  ty.tag === 'TApp' && ty.left.tag === 'TApp' &&
+    (ty.left.left === tFun || (ty.left.left.tag === 'TCon' && ty.left.left.name === tFun.name));
 
 const showTy = ty => {
   if (ty.tag === 'TCon') return ty.name;
   if (ty.tag === 'TVar') return ty.name;
   if (ty.tag === 'TMeta') return `?${ty.id}`;
   if (ty.tag === 'TSkol') return `${ty.name}\$${ty.id}`;
-  if (ty.tag === 'TFun') return `(${showTy(ty.left)} -> ${showTy(ty.right)})`;
   if (ty.tag === 'TForall') return `(forall ${ty.tvs.join(' ')}. ${showTy(ty.type)})`;
+  if (isTFun(ty)) return `(${showTy(ty.left.right)} -> ${showTy(ty.right)})`;
+  if (ty.tag === 'TApp') return `(${showTy(ty.left)} ${showTy(ty.right)})`;
 };
 
 const substTVar = (map, ty) => {
   if (ty.tag === 'TVar') return map[ty.name] || ty;
-  if (ty.tag === 'TFun') return TFun(substTVar(map, ty.left), substTVar(map, ty.right));
+  if (ty.tag === 'TApp') return TApp(substTVar(map, ty.left), substTVar(map, ty.right));
   if (ty.tag === 'TForall') {
     const m = {};
     for (let k in map) if (ty.tvs.indexOf(k) < 0) m[k] = map[k];
@@ -31,7 +38,7 @@ const tmetas = (ty, free = [], tms = []) => {
     tms.push(ty);
     return tms;
   }
-  if (ty.tag === 'TFun')
+  if (ty.tag === 'TApp')
     return tmetas(ty.right, free, tmetas(ty.left, free, tms));
   if (ty.tag === 'TForall')
     return tmetas(ty.type, free, tms);
@@ -39,7 +46,7 @@ const tmetas = (ty, free = [], tms = []) => {
 };
 
 const tbinders = (ty, bs = []) => {
-  if (ty.tag === 'TFun') return tbinders(ty.right, tbinders(ty.left, bs));
+  if (ty.tag === 'TApp') return tbinders(ty.right, tbinders(ty.left, bs));
   if (ty.tag === 'TForall') {
     for (let i = 0, l = ty.tvs.length; i < l; i++) {
       const x = ty.tvs[i];
@@ -57,14 +64,14 @@ const prune = ty => {
     ty.type = t;
     return t;
   }
-  if (ty.tag === 'TFun') return TFun(prune(ty.left), prune(ty.right));
+  if (ty.tag === 'TApp') return TApp(prune(ty.left), prune(ty.right));
   if (ty.tag === 'TForall') return TForall(ty.tvs, prune(ty.type));
   return ty;
 };
 
 const occursTMeta = (x, t) => {
   if (x === t) return true;
-  if (t.tag === 'TFun') return occursTMeta(x, t.left) || occursTMeta(x, t.right);
+  if (t.tag === 'TApp') return occursTMeta(x, t.left) || occursTMeta(x, t.right);
   if (t.tag === 'TForall') return occursTMeta(x, t.type);
   return false;
 };
@@ -97,6 +104,10 @@ module.exports = {
   TFun,
   TForall,
   showTy,
+
+  tFun,
+  TFun,
+  isTFun,
 
   substTVar,
   tmetas,

@@ -42,13 +42,13 @@ const tcRho = (env, term, ex) => {
   if (term.tag === 'App') {
     const ty = inferRho(env, term.left);
     const fn = unifyTFun(ty);
-    checkSigma(env, term.right, fn.left);
+    checkSigma(env, term.right, fn.left.right);
     return instSigma(fn.right, ex);
   }
   if (term.tag === 'Abs') {
     if (ex.tag === 'Check') {
       const fn = unifyTFun(ex.type);
-      const nenv = extend(env, term.name, fn.left);
+      const nenv = extend(env, term.name, fn.left.right);
       return checkRho(nenv, term.body, fn.right);
     } else if (ex.tag === 'Infer') {
       const ty = freshTMeta();

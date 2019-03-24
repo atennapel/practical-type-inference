@@ -6,6 +6,7 @@ const {
   prune,
   tmetas,
   substTVar,
+  isTFun,
 } = require('./types');
 
 const terr = msg => { throw new TypeError(msg) };
@@ -48,9 +49,9 @@ const skolemise = (ty, sk = []) => {
     }
     return skolemise(substTVar(m, ty.type), sk);
   }
-  if (ty.tag === 'TFun') {
+  if (isTFun(ty)) {
     const b = skolemise(ty.right, sk);
-    return TFun(ty.left, b);
+    return TFun(ty.left.right, b);
   }
   return ty;
 };
@@ -63,7 +64,7 @@ const tmetasEnv = (env, free = [], tms = []) => {
 const skolemCheck = (sk, ty) => {
   if (ty.tag === 'TSkol' && sk.indexOf(ty) >= 0)
     return terr(`skolem check failed: ${showTy(ty)}`);
-  if (ty.tag === 'TFun') {
+  if (ty.tag === 'TApp') {
     skolemCheck(sk, ty.left);
     return skolemCheck(sk, ty.right);
   }
