@@ -52,8 +52,9 @@ const skolemise = (ty, sk = []) => {
     return skolemise(substTVar(m, ty.type), sk);
   }
   if (isTFun(ty)) {
-    const b = skolemise(ty.right, sk);
-    return TFun(ty.left.right, b);
+    const { left: { right: left }, right } = ty;
+    const b = skolemise(right, sk);
+    return b === right ? ty : TFun(left, b);
   }
   return ty;
 };

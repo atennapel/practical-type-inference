@@ -23,11 +23,18 @@ const showTy = ty => {
 
 const substTVar = (map, ty) => {
   if (ty.tag === 'TVar') return map[ty.name] || ty;
-  if (ty.tag === 'TApp') return TApp(substTVar(map, ty.left), substTVar(map, ty.right));
+  if (ty.tag === 'TApp') {
+    const { left, right } = ty;
+    const a = substTVar(map, left);
+    const b = substTVar(map, right);
+    return left === a && right === b ? ty : TApp(a, b);
+  }
   if (ty.tag === 'TForall') {
+    const { tvs, type } = ty;
     const m = {};
-    for (let k in map) if (ty.tvs.indexOf(k) < 0) m[k] = map[k];
-    return TForall(ty.tvs, substTVar(m, ty.type));
+    for (let k in map) if (tvs.indexOf(k) < 0) m[k] = map[k];
+    const b = substTVar(m, type);
+    return b === type ? ty : TForall(tvs, b);
   }
   return ty;
 };
@@ -64,8 +71,17 @@ const prune = ty => {
     ty.type = t;
     return t;
   }
-  if (ty.tag === 'TApp') return TApp(prune(ty.left), prune(ty.right));
-  if (ty.tag === 'TForall') return TForall(ty.tvs, prune(ty.type));
+  if (ty.tag === 'TApp') {
+    const { left, right } = ty;
+    const a = prune(left);
+    const b = prune(right);
+    return left === a && right === b ? ty : TApp(a, b);
+  }
+  if (ty.tag === 'TForall') {
+    const { tvs, type } = ty;
+    const b = prune(type);
+    return b === type ? ty : TForall(tvs, b);
+  }
   return ty;
 };
 
@@ -101,6 +117,7 @@ module.exports = {
   TVar,
   TMeta,
   TSkol,
+  TApp,
   TFun,
   TForall,
   showTy,

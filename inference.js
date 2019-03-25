@@ -44,15 +44,15 @@ const tcRho = (env, term, ex) => {
   }
   if (term.tag === 'App') {
     const ty = inferRho(env, term.left);
-    const fn = unifyTFun(ty);
-    checkSigma(env, term.right, fn.left.right);
-    return instSigma(fn.right, ex);
+    const { left: { right: left }, right } = unifyTFun(ty);
+    checkSigma(env, term.right, left);
+    return instSigma(right, ex);
   }
   if (term.tag === 'Abs') {
     if (ex.tag === 'Check') {
-      const fn = unifyTFun(ex.type);
-      const nenv = extend(env, term.name, fn.left.right);
-      return checkRho(nenv, term.body, fn.right);
+      const { left: { right: left }, right } = unifyTFun(ex.type);
+      const nenv = extend(env, term.name, left);
+      return checkRho(nenv, term.body, right);
     } else if (ex.tag === 'Infer') {
       const ty = freshTMeta();
       const nenv = extend(env, term.name, ty);
@@ -62,10 +62,10 @@ const tcRho = (env, term, ex) => {
   }
   if (term.tag === 'AbsT') {
     if (ex.tag === 'Check') {
-      const fn = unifyTFun(ex.type);
-      subsCheck(fn.left.right, term.type);
+      const { left: { right: left }, right } = unifyTFun(ex.type);
+      subsCheck(left, term.type);
       const nenv = extend(env, term.name, term.type);
-      return checkRho(nenv, term.body, fn.right);
+      return checkRho(nenv, term.body, right);
     } else if (ex.tag === 'Infer') {
       const nenv = extend(env, term.name, term.type);
       const bty = inferRho(nenv, term.body);
@@ -110,18 +110,12 @@ const subsCheck = (a, b) => {
 };
 const subsCheckRho = (a, b) => {
   // console.log(`subsCheckRho ${showTy(a)} <: ${showTy(b)}`);
-  if (a.tag === 'TForall') {
-    const rho = instantiate(a);
-    return subsCheckRho(rho, b);
-  }
-  if (isTFun(b)) {
-    const fn = unifyTFun(a);
-    return subsCheckTFun(fn, b);
-  }
-  if (isTFun(a)) {
-    const fn = unifyTFun(b);
-    return subsCheckTFun(a, fn);
-  }
+  if (a.tag === 'TForall')
+    return subsCheckRho(instantiate(a), b);
+  if (isTFun(b))
+    return subsCheckTFun(unifyTFun(a), b);
+  if (isTFun(a))
+    return subsCheckTFun(a, unifyTFun(b));
   return unify(a, b);
 };
 const subsCheckTFun = (a, b) => {
@@ -132,7 +126,8 @@ const subsCheckTFun = (a, b) => {
 
 const instSigma = (ty, ex) => {
   // console.log(`instSigma ${showTy(ty)} @ ${showEx(ex)}`);
-  if (ex.tag === 'Check') return subsCheckRho(ty, ex.type);
+  if (ex.tag === 'Check')
+    return subsCheckRho(ty, ex.type);
   return ex.type = instantiate(ty);
 };
 
