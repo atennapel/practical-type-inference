@@ -7,7 +7,7 @@ const kType = KCon('Type');
 const showKind = ki => {
   if (ki.tag === 'KCon') return ki.name;
   if (ki.tag === 'KMeta') return `?${ki.id}`;
-  if (ki.tag === 'KFun') return `(${showTy(ki.left)} -> ${showTy(ki.right)})`;
+  if (ki.tag === 'KFun') return `(${showKind(ki.left)} -> ${showKind(ki.right)})`;
 };
 
 const pruneKind = ki => {

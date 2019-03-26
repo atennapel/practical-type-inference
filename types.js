@@ -1,9 +1,11 @@
+const { showKind } = require('./kinds');
+
 const TCon = name => ({ tag: 'TCon', name });
 const TVar = name => ({ tag: 'TVar', name });
-const TMeta = (id, type = null) => ({ tag: 'TMeta', id, type });
-const TSkol = (name, id) => ({ tag: 'TSkol', name, id });
+const TMeta = (id, kind, type = null) => ({ tag: 'TMeta', id, kind, type });
+const TSkol = (name, id, kind) => ({ tag: 'TSkol', name, id, kind });
 const TApp = (left, right) => ({ tag: 'TApp', left, right });
-const TForall = (tvs, type) => ({ tag: 'TForall', tvs, type });
+const TForall = (tvs, ks, type) => ({ tag: 'TForall', tvs, ks, type });
 
 const tFun = TCon('->');
 const TFun = (left, right) => TApp(TApp(tFun, left), right);
@@ -16,7 +18,8 @@ const showTy = ty => {
   if (ty.tag === 'TVar') return ty.name;
   if (ty.tag === 'TMeta') return `?${ty.id}`;
   if (ty.tag === 'TSkol') return `${ty.name}\$${ty.id}`;
-  if (ty.tag === 'TForall') return `(forall ${ty.tvs.join(' ')}. ${showTy(ty.type)})`;
+  if (ty.tag === 'TForall')
+    return `(forall ${ty.tvs.map((tv, i) => `(${tv} : ${showKind(ty.ks[i])})`).join('')}. ${showTy(ty.type)})`;
   if (isTFun(ty)) return `(${showTy(ty.left.right)} -> ${showTy(ty.right)})`;
   if (ty.tag === 'TApp') return `(${showTy(ty.left)} ${showTy(ty.right)})`;
 };
@@ -30,11 +33,11 @@ const substTVar = (map, ty) => {
     return left === a && right === b ? ty : TApp(a, b);
   }
   if (ty.tag === 'TForall') {
-    const { tvs, type } = ty;
+    const { tvs, ks, type } = ty;
     const m = {};
     for (let k in map) if (tvs.indexOf(k) < 0) m[k] = map[k];
     const b = substTVar(m, type);
-    return b === type ? ty : TForall(tvs, b);
+    return b === type ? ty : TForall(tvs, ks, b);
   }
   return ty;
 };
@@ -78,9 +81,9 @@ const prune = ty => {
     return left === a && right === b ? ty : TApp(a, b);
   }
   if (ty.tag === 'TForall') {
-    const { tvs, type } = ty;
+    const { tvs, ks, type } = ty;
     const b = prune(type);
-    return b === type ? ty : TForall(tvs, b);
+    return b === type ? ty : TForall(tvs, ks, b);
   }
   return ty;
 };
@@ -97,6 +100,7 @@ const quantify = (tms, ty) => {
   if (len === 0) return ty;
   const used = tbinders(ty);
   const tvs = Array(len);
+  const ks = Array(len);
   let i = 0;
   let l = 0;
   let j = 0;
@@ -104,12 +108,14 @@ const quantify = (tms, ty) => {
     const v = `${String.fromCharCode(l + 97)}${j > 0 ? j : ''}`;
     if (used.indexOf(v) < 0) {
       tms[i].type = TVar(v);
-      tvs[i++] = v;
+      tvs[i] = v;
+      ks[i] = tms[i].kind;
+      i++;
     }
     l = (l + 1) % 26;
     if (l === 0) j++;
   }
-  return TForall(tvs, prune(ty));
+  return TForall(tvs, ks, prune(ty));
 };
 
 module.exports = {
