@@ -17,7 +17,11 @@ const pruneKind = ki => {
     ki.kind = k;
     return k;
   }
-  if (ki.tag === 'KFun') return KFun(pruneKind(ki.left), pruneKind(ki.right));
+  if (ki.tag === 'KFun') {
+    const l = pruneKind(ki.left);
+    const r = pruneKind(ki.right);
+    return l === ki.left && r === ki.right ? ki : KFun(l, r);
+  }
   return ki;
 };
 
