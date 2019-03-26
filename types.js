@@ -19,7 +19,8 @@ const showTy = ty => {
   if (ty.tag === 'TMeta') return `?${ty.id}`;
   if (ty.tag === 'TSkol') return `${ty.name}\$${ty.id}`;
   if (ty.tag === 'TForall')
-    return `(forall ${ty.tvs.map((tv, i) => `(${tv} : ${showKind(ty.ks[i])})`).join('')}. ${showTy(ty.type)})`;
+    return `(forall ${ty.tvs.map((tv, i) =>
+        ty.ks && ty.ks[i] ? `(${tv} : ${showKind(ty.ks[i])})` : `${tv}`).join('')}. ${showTy(ty.type)})`;
   if (isTFun(ty)) return `(${showTy(ty.left.right)} -> ${showTy(ty.right)})`;
   if (ty.tag === 'TApp') return `(${showTy(ty.left)} ${showTy(ty.right)})`;
 };

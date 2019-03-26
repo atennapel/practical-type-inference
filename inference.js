@@ -25,6 +25,7 @@ const {
   skolemCheckEnv,
   tmetasEnv,
 } = require('./env');
+const { inferKind } = require('./kindInference');
 
 const checkRho = (env, term, ty) => {
   // console.log(`checkRho ${showTerm(term)} : ${showTy(ty)}`);
@@ -64,15 +65,16 @@ const tcRho = (env, term, ex) => {
     }
   }
   if (term.tag === 'AbsT') {
+    const type = inferKind(env, term.type);
     if (ex.tag === 'Check') {
       const { left: { right: left }, right } = unifyTFun(env, ex.type);
-      subsCheck(env, left, term.type);
-      const nenv = extend(env, term.name, term.type);
+      subsCheck(env, left, type);
+      const nenv = extend(env, term.name, type);
       return checkRho(nenv, term.body, right);
     } else if (ex.tag === 'Infer') {
-      const nenv = extend(env, term.name, term.type);
+      const nenv = extend(env, term.name, type);
       const bty = inferRho(nenv, term.body);
-      return ex.type = TFun(term.type, bty);
+      return ex.type = TFun(type, bty);
     }
   }
   if (term.tag === 'Let') {
@@ -81,8 +83,9 @@ const tcRho = (env, term, ex) => {
     return tcRho(nenv, term.body, ex);
   }
   if (term.tag === 'Ann') {
-    checkSigma(env, term.term, term.type);
-    return instSigma(env, term.type, ex);
+    const type = inferKind(env, term.type);
+    checkSigma(env, term.term, type);
+    return instSigma(env, type, ex);
   }
 };
 

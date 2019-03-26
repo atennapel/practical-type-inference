@@ -24,6 +24,7 @@ function kfun() { return Array.prototype.slice.call(arguments).reduceRight((x, y
 const tv = TVar;
 function tfun() { return Array.prototype.slice.call(arguments).reduceRight((x, y) => TFun(y, x)) }
 function tapp() { return Array.prototype.slice.call(arguments).reduce(TApp) }
+const tforall = (tvs, ty) => TForall(tvs, null, ty);
 
 const v = Var;
 function app() { return Array.prototype.slice.call(arguments).reduce(App) }
@@ -41,7 +42,7 @@ const env = Env({
   '->': kfun(kType, kType, kType),
   List: kfun(kType, kType),
 });
-const term = app(v('refl'), app(v('singleton'), v('id')));
+const term = Ann(app(v('refl'), app(v('singleton'), v('id'))), tforall(['t'], List(tv('t'))));
 try {
   console.log(showTerm(term));
   time = Date.now();
@@ -53,3 +54,4 @@ try {
   console.log(`${err}`);
   console.log(err);
 }
+
