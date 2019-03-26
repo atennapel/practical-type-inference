@@ -6,6 +6,8 @@ const {
   showKind,
   pruneKind,
   occursKMeta,
+  KFun,
+  kType,
 } = require('./kinds');
 const {
   freshKMeta,
@@ -29,14 +31,48 @@ const unifyKind = (a, b) => {
   return terr(`failed to unify kinds: ${showKind(a)} ~ ${showKind(b)}`);
 };
 
-const inferKindR = t => {
-  if (t.tag === 'TMeta')
-  if (t.tag === 'TVar')
-  if (t.tag === 'TSkol')
-  if (t.tag === 'TCon')
-  if (t.tag === 'TApp')
-  if (t.tag === 'TForall')
-  return terr('unimplemented');
+const inferKindR = (env, t) => {
+  if (t.tag === 'TMeta') return [t.kind, t];
+  if (t.tag === 'TVar') return terr(`tvar ${t.name} in inferKindR`);
+  if (t.tag === 'TSkol') return [t.kind, t];
+  if (t.tag === 'TCon') {
+    if (!env.tcons[t.name])
+      return terr(`undefined type constructor ${showTy(t)}`);
+    return [env.tcons[t.name], t];
+  }
+  if (t.tag === 'TApp') {
+    const [l, tl] = inferKindR(env, t.left);
+    const [r, tr] = inferKindR(env, t.right);
+    const km = freshKMeta();
+    unifyKind(l, KFun(r, km));
+    return [km, tl === t.left && tr === t.right ? t : TApp(tl, tr)];
+  }
+  if (t.tag === 'TForall') {
+    const { tvs, ks, type } = t;
+    const m = {};
+    const nks = Array(ks.length);
+    for (let i = 0, l = tvs.length; i < l; i++) {
+      const ki = ks[i] || freshKMeta();
+      const k = freshTSkol(tvs[i], ki);
+      m[tvs[i]] = k;
+      nks[i] = ki;
+    }
+    const [km, b] = inferKindR(env, substTVar(m, type));
+    return [km, TForall(tvs, nks, b)];
+  }
+};
+
+const defaultKindInKind = k => {
+  if (k.tag === 'KCon') return k;
+  if (k.tag === 'KMeta') {
+    if (k.kind) return defaultKindInKind(k.kind);
+    return kType;
+  }
+  if (k.tag === 'KFun') {
+    const l = defaultKindInKind(k.left);
+    const r = defaultKindInKind(k.right);
+    return l === k.left && r === k.right ? k : KFun(l, r);
+  }
 };
 
 const defaultKind = t => {
@@ -46,13 +82,20 @@ const defaultKind = t => {
     return l === t.left && r === t.right ? t : TApp(l, r);
   }
   if (t.tag === 'TForall') {
-    
+    const { tvs, ks, type } = t;
+    const nks = ks.map(k => k ? defaultKindInKind(k) : kType);
+    const b = defaultKind(type);
+    return TForall(tvs, nks, b);
   }
+  if (t.tag === 'TMeta')
+    return terr(`tmeta ?${t.id} in defaultKind`);
+  if (t.tag === 'TSkol')
+    return terr(`tskol ${t.name}\$${t.id} in defaultKind`);
   return t;
 };
 
-const inferKind = ty => {
-  const ti = inferKindR(ty);
+const inferKind = (env, ty) => {
+  const ti = inferKindR(env, ty);
   return defaultKind(ti);
 };
 
