@@ -13,6 +13,8 @@ const isTFun = ty =>
   ty.tag === 'TApp' && ty.left.tag === 'TApp' &&
     (ty.left.left === tFun || (ty.left.left.tag === 'TCon' && ty.left.left.name === tFun.name));
 
+const tFloat = TCon('Float');
+
 const showTy = ty => {
   if (ty.tag === 'TCon') return ty.name;
   if (ty.tag === 'TVar') return ty.name;
@@ -132,6 +134,7 @@ module.exports = {
   tFun,
   TFun,
   isTFun,
+  tFloat,
 
   substTVar,
   tmetas,

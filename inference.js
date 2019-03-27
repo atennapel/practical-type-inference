@@ -4,13 +4,13 @@ const {
   prune,
   quantify,
   isTFun,
+  tFloat,
 } = require('./types');
 const { kType } = require('./kinds');
 const {
   terr,
   resetId,
   freshTMeta,
-  extend,
   Check,
   Infer,
   instantiate,
@@ -24,6 +24,7 @@ const {
 const {
   skolemCheckEnv,
   tmetasEnv,
+  extendVar,
 } = require('./env');
 const { inferKind } = require('./kindInference');
 
@@ -46,6 +47,8 @@ const tcRho = (env, term, ex) => {
     if (!ty) return terr(`undefined var: ${term.name}`);
     return instSigma(env, ty, ex);
   }
+  if (term.tag === 'Lit')
+    return instSigma(env, tFloat, ex);
   if (term.tag === 'App') {
     const ty = inferRho(env, term.left);
     const { left: { right: left }, right } = unifyTFun(env, ty);
@@ -55,11 +58,11 @@ const tcRho = (env, term, ex) => {
   if (term.tag === 'Abs') {
     if (ex.tag === 'Check') {
       const { left: { right: left }, right } = unifyTFun(env, ex.type);
-      const nenv = extend(env, term.name, left);
+      const nenv = extendVar(env, term.name, left);
       return checkRho(nenv, term.body, right);
     } else if (ex.tag === 'Infer') {
       const ty = freshTMeta(kType);
-      const nenv = extend(env, term.name, ty);
+      const nenv = extendVar(env, term.name, ty);
       const bty = inferRho(nenv, term.body);
       return ex.type = TFun(ty, bty);
     }
@@ -69,17 +72,17 @@ const tcRho = (env, term, ex) => {
     if (ex.tag === 'Check') {
       const { left: { right: left }, right } = unifyTFun(env, ex.type);
       subsCheck(env, left, type);
-      const nenv = extend(env, term.name, type);
+      const nenv = extendVar(env, term.name, type);
       return checkRho(nenv, term.body, right);
     } else if (ex.tag === 'Infer') {
-      const nenv = extend(env, term.name, type);
+      const nenv = extendVar(env, term.name, type);
       const bty = inferRho(nenv, term.body);
       return ex.type = TFun(type, bty);
     }
   }
   if (term.tag === 'Let') {
     const ty = inferSigma(env, term.val);
-    const nenv = extend(env, term.name, ty);
+    const nenv = extendVar(env, term.name, ty);
     return tcRho(nenv, term.body, ex);
   }
   if (term.tag === 'Ann') {

@@ -5,6 +5,7 @@ const {
   AbsT,
   Let,
   Ann,
+  Lit,
   showTerm,
 } = require('./terms');
 const {
@@ -17,7 +18,7 @@ const {
 } = require('./types');
 const { kType, KFun } = require('./kinds');
 const { infer } = require('./inference');
-const { Env } = require('./env');
+const { Env, initialEnv } = require('./env');
 
 function kfun() { return Array.prototype.slice.call(arguments).reduceRight((x, y) => KFun(y, x)) }
 
@@ -34,15 +35,13 @@ const tid = TForall(['t'], [kType], tfun(tv('t'), tv('t')));
 const ListC = TCon('List');
 const List = t => tapp(ListC, t);
 
-const env = Env({
-  id: tid,
-  singleton: TForall(['t'], [kType], TFun(tv('t'), List(tv('t')))),
-  refl: TForall(['f', 'a', 'b'], [KFun(kType, kType), kType, kType], TFun(tapp(tv('f'), tv('a')), tapp(tv('f'), tv('b')))),
-}, {
-  '->': kfun(kType, kType, kType),
-  List: kfun(kType, kType),
-});
-const term = Ann(app(v('refl'), app(v('singleton'), v('id'))), tforall(['t'], List(tv('t'))));
+const env = initialEnv;
+env.vars.id = tid;
+env.vars.singleton = TForall(['t'], [kType], TFun(tv('t'), List(tv('t'))));
+env.vars.refl = TForall(['f', 'a', 'b'], [KFun(kType, kType), kType, kType], TFun(tapp(tv('f'), tv('a')), tapp(tv('f'), tv('b'))));
+env.tcons.List = kfun(kType, kType);
+
+const term = abs(['f'], app(v('f'), Lit(42)));
 try {
   console.log(showTerm(term));
   time = Date.now();
