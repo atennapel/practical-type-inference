@@ -7,7 +7,7 @@ Added:
 - kind inference in type annotations
 
 Todo:
-- if expressions
+- patterns
 - keep tvar names of annotated types
 - parser
 

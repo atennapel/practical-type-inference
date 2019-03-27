@@ -1,4 +1,4 @@
-const { tmetas, prune } = require('./types');
+const { tmetas, prune, tBool } = require('./types');
 const { skolemCheck } = require('./util');
 const {
   KFun,
@@ -25,9 +25,13 @@ const tmetasEnv = (env, free = [], tms = []) => {
   return tms;
 };
 
-const initialEnv = Env({}, {
+const initialEnv = Env({
+  True: tBool,
+  False: tBool,
+}, {
   '->': KFun(kType, KFun(kType, kType)),
   Float: kType,
+  Bool: kType,
 });
 
 module.exports = {

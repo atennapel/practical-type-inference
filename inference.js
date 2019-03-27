@@ -5,6 +5,7 @@ const {
   quantify,
   isTFun,
   tFloat,
+  tBool,
 } = require('./types');
 const { kType } = require('./kinds');
 const {
@@ -80,6 +81,21 @@ const tcRho = (env, term, ex) => {
       return ex.type = TFun(type, bty);
     }
   }
+  if (term.tag === 'If') {
+    if (ex.tag === 'Check') {
+      checkRho(env, term.cond, tBool);
+      tcRho(env, term.then_, ex);
+      tcRho(env, term.else_, ex);
+      return;
+    } else if (ex.tag === 'Infer') {
+      checkRho(env, term.cond, tBool);
+      const ty1 = inferRho(env, term.then_);
+      const ty2 = inferRho(env, term.else_);
+      subsCheck(env, ty1, ty2);
+      subsCheck(env, ty2, ty1);
+      return ex.type = ty1;
+    }
+  }
   if (term.tag === 'Let') {
     const ty = inferSigma(env, term.val);
     const nenv = extendVar(env, term.name, ty);
@@ -148,4 +164,3 @@ const infer = (env, term) => {
 module.exports = {
   infer,
 };
-

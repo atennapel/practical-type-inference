@@ -5,6 +5,7 @@ const {
   AbsT,
   Let,
   Ann,
+  If,
   Lit,
   showTerm,
 } = require('./terms');
@@ -15,6 +16,7 @@ const {
   TVar,
   TForall,
   showTy,
+  tBool,
 } = require('./types');
 const { kType, KFun } = require('./kinds');
 const { infer } = require('./inference');
@@ -41,7 +43,9 @@ env.vars.singleton = TForall(['t'], [kType], TFun(tv('t'), List(tv('t'))));
 env.vars.refl = TForall(['f', 'a', 'b'], [KFun(kType, kType), kType, kType], TFun(tapp(tv('f'), tv('a')), tapp(tv('f'), tv('b'))));
 env.tcons.List = kfun(kType, kType);
 
-const term = abs(['f'], app(v('f'), Lit(42)));
+const t1 = Ann(abs(['x', 'y', 'z'], v('z')), tfun(tBool, TForall(['a'], [], tfun(tBool, tv('a'), tv('a')))));
+const t2 = Ann(abs(['x', 'y', 'z'], v('z')), tfun(tBool, tBool, TForall(['a'], [], tfun(tv('a'), tv('a')))));
+const term = If(v('True'), t1, t2);
 try {
   console.log(showTerm(term));
   time = Date.now();
